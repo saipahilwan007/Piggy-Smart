@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PiggySmart - Premium Savings Tracker & Calculator</title>
+  <meta name="description" content="A high-fidelity interactive savings tracker, calculator, and visualization dashboard.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8b5cf6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Local Styles -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Fullscreen Auth Screen (Visible by default) -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card glass-card">
+      <div class="auth-logo">
+        <i class="fa-solid fa-piggy-bank brand-icon"></i>
+        <h2>PiggySmart</h2>
+      </div>
+      <h3 id="auth-title">Welcome Back</h3>
+      <p id="auth-subtitle" class="auth-subtitle">Login to access your saving tracker</p>
+      
+      <div id="auth-alert" class="auth-alert hidden"></div>
+
+      <form id="auth-form" class="auth-form">
+        <div class="input-group">
+          <label for="auth-username">Username</label>
+          <input type="text" id="auth-username" class="form-input" placeholder="Enter username" required autocomplete="username">
+        </div>
+        <div class="input-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="auth-submit-btn" class="btn-primary">
+          <span id="btn-text">Sign In</span>
+          <i class="fa-solid fa-right-to-bracket"></i>
+        </button>
+      </form>
+      
+      <div class="auth-toggle">
+        <p id="auth-toggle-text">Don't have an account? <span id="auth-toggle-link" class="link-highlight">Sign Up</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard App (Hidden by default until logged in) -->
+  <div id="app-container" class="app-container hidden">
+    
+    <!-- Sidebar Navigation / Logo Header -->
+    <header class="app-header">
+      <div class="logo">
+        <i class="fa-solid fa-piggy-bank brand-icon"></i>
+        <h1>PiggySmart</h1>
+      </div>
+      <p class="tagline">Smart Savings Tracker & Projection Calculator</p>
+      
+      <!-- General configurations & User session info -->
+      <div class="config-panel">
+        <div class="user-greeting-wrapper">
+          <span class="user-greeting"><i class="fa-solid fa-user-circle"></i> Hello, <b id="display-username">User</b></span>
+          <button id="logout-btn" class="btn-danger-link"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        </div>
+        <div class="divider-v"></div>
+        <div class="input-group-inline">
+          <label for="currency-select"><i class="fa-solid fa-coins"></i> Currency</label>
+          <select id="currency-select" class="form-input">
+            <option value="$">USD ($)</option>
+            <option value="€">EUR (€)</option>
+            <option value="£">GBP (£)</option>
+            <option value="₹">INR (₹)</option>
+            <option value="¥">JPY (¥)</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- Top Metrics Dashboard -->
+      <section class="dashboard-grid">
+        <!-- Card 1: Total Saved -->
+        <div class="metric-card glass-card">
+          <div class="metric-icon color-savings">
+            <i class="fa-solid fa-vault"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Total Saved This Month</span>
+            <h2 id="total-saved-amount" class="metric-value">$0.00</h2>
+          </div>
+        </div>
+
+        <!-- Card 2: Savings Goal -->
+        <div class="metric-card glass-card">
+          <div class="metric-icon color-target">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Monthly Savings Goal</span>
+            <div class="target-edit-wrapper">
+              <h2 id="goal-amount-display" class="metric-value">$1,000.00</h2>
+              <button id="edit-goal-btn" class="icon-btn" title="Edit Goal"><i class="fa-solid fa-pen-to-square"></i></button>
+            </div>
+            <!-- Hidden Goal Input Panel -->
+            <div id="goal-edit-panel" class="goal-edit-panel hidden">
+              <input type="number" id="goal-input" class="form-input-sm" value="1000" min="1">
+              <button id="save-goal-btn" class="btn-primary-sm">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Progress Tracker Circular -->
+        <div class="metric-card glass-card progress-metric-card">
+          <div class="circular-progress-container">
+            <svg class="progress-ring" width="80" height="80">
+              <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="transparent" r="34" cx="40" cy="40"/>
+              <circle id="progress-circle" class="progress-ring__circle" stroke="url(#progressGradient)" stroke-width="6" fill="transparent" r="34" cx="40" cy="40"/>
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8b5cf6" />
+                  <stop offset="100%" stop-color="#3b82f6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="progress-text-overlay">
+              <span id="progress-percentage">0%</span>
+            </div>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Goal Completion</span>
+            <h2 id="progress-status-text" class="metric-value-sub">0% Achieved</h2>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Dynamic Grid (Loggers, Visuals, Calculator) -->
+      <section class="content-grid">
+        
+        <!-- Left Side: Log Entries & Quick Add -->
+        <div class="grid-col glass-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-plus-circle text-gradient"></i> Add Savings Entry</h3>
+          </div>
+          <form id="savings-form" class="savings-form">
+            <div class="form-row">
+              <div class="input-group">
+                <label for="saving-amount">Amount</label>
+                <div class="currency-input-wrapper">
+                  <span class="currency-symbol">$</span>
+                  <input type="number" id="saving-amount" class="form-input" placeholder="0.00" min="0.01" step="any" required>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="saving-category">Category</label>
+                <select id="saving-category" class="form-input" required>
+                  <option value="Emergency Fund">🚨 Emergency Fund</option>
+                  <option value="Retirement">👴 Retirement</option>
+                  <option value="Travel">✈️ Travel & Vacation</option>
+                  <option value="Gadgets / Shopping">💻 Gadgets & Shopping</option>
+                  <option value="Investments">📈 Stocks & Crypto</option>
+                  <option value="General Savings" selected>💰 General Savings</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="input-group">
+                <label for="saving-date">Date</label>
+                <input type="date" id="saving-date" class="form-input" required>
+              </div>
+              <div class="input-group">
+                <label for="saving-note">Note / Description</label>
+                <input type="text" id="saving-note" class="form-input" placeholder="e.g. Weekly transfer">
+              </div>
+            </div>
+            <button type="submit" class="btn-primary"><i class="fa-solid fa-wallet"></i> Log Saving Entry</button>
+          </form>
+
+          <hr class="card-divider">
+
+          <div class="card-header flex-header">
+            <h3><i class="fa-solid fa-list-check text-gradient"></i> Saving Ledger</h3>
+            <div class="ledger-actions-wrapper">
+              <!-- Export Dropdown -->
+              <div class="dropdown">
+                <button id="export-btn" class="btn-secondary-sm dropdown-toggle" title="Download Ledger">
+                  <i class="fa-solid fa-download"></i> Export <i class="fa-solid fa-caret-down"></i>
+                </button>
+                <div id="export-menu" class="dropdown-menu hidden">
+                  <button class="dropdown-item" id="export-csv-btn">
+                    <i class="fa-solid fa-file-csv"></i> Export as CSV
+                  </button>
+                  <button class="dropdown-item" id="export-json-btn">
+                    <i class="fa-solid fa-file-code"></i> Export as JSON
+                  </button>
+                  <button class="dropdown-item" id="export-txt-btn">
+                    <i class="fa-solid fa-file-lines"></i> Export as TXT
+                  </button>
+                </div>
+              </div>
+              <button id="clear-all-btn" class="btn-danger-link"><i class="fa-solid fa-trash-can"></i> Clear Ledger</button>
+            </div>
+          </div>
+          
+          <div class="ledger-container">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th class="text-right">Amount</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-body">
+                <tr class="empty-state-row">
+                  <td colspan="5" class="text-center text-muted">
+                    <i class="fa-solid fa-receipt empty-icon"></i>
+                    <p>No savings logged yet. Start saving today!</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right Side: Charts & Compound Interest Calculator -->
+        <div class="grid-col flex-vertical">
+          
+          <!-- Category Breakdown & Performance Charts -->
+          <div class="glass-card flex-grow-1">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-pie text-gradient"></i> Savings Analytics</h3>
+            </div>
+            <div class="charts-row">
+              <div class="chart-wrapper">
+                <canvas id="categoryChart"></canvas>
+              </div>
+              <!-- Performance indicator checklist / milestone -->
+              <div class="performance-metrics">
+                <div class="performance-score-card">
+                  <span class="perf-label">Savings Grade</span>
+                  <span id="savings-grade" class="perf-grade">Pending</span>
+                </div>
+                <div class="milestones-list">
+                  <div class="milestone-item" id="ms-starter">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <span>First Savings Logged</span>
+                  </div>
+                  <div class="milestone-item" id="ms-halfway">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <span>50% Goal Reached</span>
+                  </div>
+                  <div class="milestone-item" id="ms-complete">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <span>Goal Completed! 🎉</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compound Savings Calculator -->
+          <div class="glass-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-calculator text-gradient"></i> Savings Projection Calculator</h3>
+            </div>
+            <div class="calculator-form">
+              <div class="calc-row">
+                <div class="input-group">
+                  <label for="calc-monthly">Monthly Deposit</label>
+                  <div class="currency-input-wrapper">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="calc-monthly" class="form-input" value="100" min="1">
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label for="calc-interest">Annual Interest (%)</label>
+                  <input type="number" id="calc-interest" class="form-input" value="6" min="0" step="0.1">
+                </div>
+                <div class="input-group">
+                  <label for="calc-years">Duration (Years)</label>
+                  <input type="number" id="calc-years" class="form-input" value="5" min="1" max="50">
+                </div>
+              </div>
+
+              <!-- Slider Inputs for Quick Adjusting -->
+              <div class="slider-group">
+                <div class="slider-wrapper">
+                  <span class="slider-label">Monthly Deposit: <b id="slider-val-deposit">$100</b></span>
+                  <input type="range" id="deposit-range" min="10" max="2000" step="10" value="100" class="range-slider">
+                </div>
+                <div class="slider-wrapper">
+                  <span class="slider-label">Interest Rate: <b id="slider-val-interest">6%</b></span>
+                  <input type="range" id="interest-range" min="0" max="20" step="0.5" value="6" class="range-slider">
+                </div>
+              </div>
+
+              <div class="calc-results">
+                <div class="calc-result-box">
+                  <span class="result-label">Total Principal</span>
+                  <h4 id="calc-result-principal" class="result-value">$6,000.00</h4>
+                </div>
+                <div class="calc-result-box highlight">
+                  <span class="result-label">Total Projected Value</span>
+                  <h4 id="calc-result-total" class="result-value">$6,977.00</h4>
+                </div>
+                <div class="calc-result-box interest-color">
+                  <span class="result-label">Interest Earned</span>
+                  <h4 id="calc-result-interest" class="result-value">$977.00</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+    
+    <footer class="app-footer">
+      <p>&copy; 2026 PiggySmart Savings Hub. Design-engineered for visual excellence.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('Service Worker registered successfully!', reg))
+          .catch((err) => console.log('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

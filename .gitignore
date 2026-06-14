@@ -1,0 +1,5 @@
+node_modules/
+.venv/
+savings.db
+.vscode/
+.DS_Store
